@@ -1,0 +1,5 @@
+D:\Projects\Visual Studio Projects\QueryTextDriver\QueryTextDriverException\obj\Release\ResolveAssemblyReference.cache
+D:\Projects\Visual Studio Projects\QueryTextDriver\QueryTextDriverException\bin\Release\QueryTextDriverException.dll
+D:\Projects\Visual Studio Projects\QueryTextDriver\QueryTextDriverException\bin\Release\QueryTextDriverException.pdb
+D:\Projects\Visual Studio Projects\QueryTextDriver\QueryTextDriverException\obj\Release\QueryTextDriverException.dll
+D:\Projects\Visual Studio Projects\QueryTextDriver\QueryTextDriverException\obj\Release\QueryTextDriverException.pdb
