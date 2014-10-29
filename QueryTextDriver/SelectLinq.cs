@@ -95,74 +95,77 @@ namespace QueryTextDriver
                     QueryExecutor executor = new QueryExecutor(config);
                     this.tmpJoins.Add(executor.Execute(table.SubQuery.AsText));
                 }
-                string fileName = table.TableToken.AsText.Trim(new char[] { '"' });
-                if (!File.Exists(fileName))
+                else
                 {
-                    QueryTextDriverException exception = new QueryTextDriverException("Файл {0} в блоке FROM не существует");
-                    exception.Data.Add("{0}", fileName);
-                    throw exception;
-                }
-                //Формируем таблицу из файла
-                StreamReader sr = new StreamReader(fileName);
-                string text = sr.ReadToEnd();
-                sr.Close();
-                string[] rowsStr = text.Split(new string[] { config.RowSeparator }, StringSplitOptions.None);
-                TableClass tableInfo = new TableClass();
-                tableInfo.TableName = fileName;
-                tableInfo.TableAlias = table.TableAlias;
-                Collection<ColumnClass> columns = new Collection<ColumnClass>();
-                Collection<RowClass> rows = new Collection<RowClass>();
-                Collection<string[]> rawRows = new Collection<string[]>();
-                int columnCount = 0;
-                for (int i = 0; i < rowsStr.Length; i++)
-                {
-                    string row_s = rowsStr[i];
-                    string[] cells = row_s.Split(new string[] { config.ColumnSeparator }, StringSplitOptions.None);
-                    rawRows.Add(cells);
-                    if (columnCount < cells.Length)
-                        columnCount = cells.Length;
-                }
-                for (int i = 0; i < rowsStr.Length; i++)
-                {
-                    string[] cells = rawRows[i];
-                    if (i == 0) 
+                    string fileName = table.TableToken.AsText.Trim(new char[] { '"' });
+                    if (!File.Exists(fileName))
                     {
-                        //Инициализируем колонки
-                        for (int j = 0; j < columnCount; j++)
-                            columns.Add(new ColumnClass(new Collection<CellClass>(), "", "", tableInfo));
-                        //Заполняем заголовки
-                        if (config.FirstRowHeader)
+                        QueryTextDriverException exception = new QueryTextDriverException("Файл {0} в блоке FROM не существует");
+                        exception.Data.Add("{0}", fileName);
+                        throw exception;
+                    }
+                    //Формируем таблицу из файла
+                    StreamReader sr = new StreamReader(fileName);
+                    string text = sr.ReadToEnd();
+                    sr.Close();
+                    string[] rowsStr = text.Split(new string[] { config.RowSeparator }, StringSplitOptions.None);
+                    TableClass tableInfo = new TableClass();
+                    tableInfo.TableName = fileName;
+                    tableInfo.TableAlias = table.TableAlias;
+                    Collection<ColumnClass> columns = new Collection<ColumnClass>();
+                    Collection<RowClass> rows = new Collection<RowClass>();
+                    Collection<string[]> rawRows = new Collection<string[]>();
+                    int columnCount = 0;
+                    for (int i = 0; i < rowsStr.Length; i++)
+                    {
+                        string row_s = rowsStr[i];
+                        string[] cells = row_s.Split(new string[] { config.ColumnSeparator }, StringSplitOptions.None);
+                        rawRows.Add(cells);
+                        if (columnCount < cells.Length)
+                            columnCount = cells.Length;
+                    }
+                    for (int i = 0; i < rowsStr.Length; i++)
+                    {
+                        string[] cells = rawRows[i];
+                        if (i == 0)
                         {
-                            for (int j = 0; j < cells.Length; j++)
-                                columns[j].ColumnName = cells[j];
-                            for (int j = cells.Length; j < columnCount; j++)
-                                columns[j].ColumnName = "`" + (j + 1).ToString()+"`";
-                            continue;
-                        }
-                        else
-                        {
+                            //Инициализируем колонки
                             for (int j = 0; j < columnCount; j++)
-                                columns[j].ColumnName = "`"+(j + 1).ToString()+"`";
+                                columns.Add(new ColumnClass(new Collection<CellClass>(), "", "", tableInfo));
+                            //Заполняем заголовки
+                            if (config.FirstRowHeader)
+                            {
+                                for (int j = 0; j < cells.Length; j++)
+                                    columns[j].ColumnName = cells[j];
+                                for (int j = cells.Length; j < columnCount; j++)
+                                    columns[j].ColumnName = "`" + (j + 1).ToString() + "`";
+                                continue;
+                            }
+                            else
+                            {
+                                for (int j = 0; j < columnCount; j++)
+                                    columns[j].ColumnName = "`" + (j + 1).ToString() + "`";
+                            }
+                        }
+                        //Заполняем колонки и строки
+                        RowClass row = new RowClass();
+                        row.Table = tableInfo;
+                        rows.Add(row);
+                        for (int j = 0; j < columnCount; j++)
+                        {
+                            CellClass cell;
+                            if (j < cells.Length)
+                                cell = new CellClass(cells[j], columns[j], row);
+                            else
+                                cell = new CellClass("", columns[j], row);
+                            row.Cells.Add(cell);
+                            columns[j].AddCell(cell);
                         }
                     }
-                    //Заполняем колонки и строки
-                    RowClass row = new RowClass();
-                    row.Table = tableInfo;
-                    rows.Add(row);
-                    for (int j = 0; j < columnCount; j++)
-                    {
-                        CellClass cell;
-                        if (j < cells.Length)
-                            cell = new CellClass(cells[j], columns[j], row);
-                        else
-                            cell = new CellClass("", columns[j], row);
-                        row.Cells.Add(cell);
-                        columns[j].AddCell(cell);
-                    }
+                    tableInfo.Columns = columns;
+                    tableInfo.Rows = rows;
+                    this.tmpJoins.Add(new TableJoin(columns, rows));
                 }
-                tableInfo.Columns = columns;
-                tableInfo.Rows = rows;
-                this.tmpJoins.Add(new TableJoin(columns, rows));
             }
             return this;
         }
