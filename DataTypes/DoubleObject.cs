@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using QueryTextDriverExceptionNS;
@@ -10,7 +11,7 @@ namespace DataTypes
     {
         public DoubleObject(object value)
         {
-            this.value = System.Convert.ToDouble(value); ;
+            this.value = System.Convert.ToDouble(value, CultureInfo.CurrentCulture); ;
         }
 
         public override BoolObject AsBool()
@@ -43,6 +44,8 @@ namespace DataTypes
 
         public static CsvObject operator +(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"+\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new DoubleObject(value1.Value() + ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -60,6 +63,8 @@ namespace DataTypes
 
         public static CsvObject operator -(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"-\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new DoubleObject(value1.Value() - ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -77,6 +82,8 @@ namespace DataTypes
 
         public static CsvObject operator /(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"/\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new DoubleObject(value1.Value() / ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -94,6 +101,8 @@ namespace DataTypes
 
         public static CsvObject operator *(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"*\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new DoubleObject(value1.Value() * ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -111,6 +120,8 @@ namespace DataTypes
 
         public static CsvObject operator %(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"%\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new DoubleObject(value1.Value() % ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -128,6 +139,8 @@ namespace DataTypes
 
         public static BoolObject operator >(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value2.GetType() == typeof(IntObject))
                 return new BoolObject(value1.Value() > ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -145,6 +158,8 @@ namespace DataTypes
 
         public static BoolObject operator <(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value2.GetType() == typeof(IntObject))
                 return new BoolObject(value1.Value() < ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -162,6 +177,8 @@ namespace DataTypes
 
         public static BoolObject operator ==(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value2.GetType() == typeof(IntObject))
                 return new BoolObject(value1.Value() == ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -197,6 +214,8 @@ namespace DataTypes
 
         public static CsvObject operator |(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"|\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new IntObject(value1.AsInt().Value() | ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -214,6 +233,8 @@ namespace DataTypes
 
         public static CsvObject operator &(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"&\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new IntObject(value1.AsInt().Value() & ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))
@@ -231,6 +252,8 @@ namespace DataTypes
 
         public static CsvObject operator ^(DoubleObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"^\" не передана ссылка на объект");
             if (value2.GetType() == typeof(IntObject))
                 return new IntObject(value1.AsInt().Value() ^ ((IntObject)value2).Value());
             if (value2.GetType() == typeof(DoubleObject))

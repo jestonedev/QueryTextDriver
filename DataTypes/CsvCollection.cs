@@ -4,10 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Collections.ObjectModel;
 using System.Collections;
+using QueryTextDriverExceptionNS;
+using System.Globalization;
 
 namespace DataTypes
 {
-    public class CsvCollection : CsvObject, IEnumerable<CsvObject>, IEnumerator<CsvObject>, IEnumerable, IEnumerator, IDisposable
+    public sealed class CsvCollection : CsvObject, IEnumerable<CsvObject>, IEnumerator<CsvObject>, IEnumerable, IEnumerator, IDisposable
     {
         private Collection<CsvObject> array;
         private int currentIndex = -1;
@@ -60,7 +62,7 @@ namespace DataTypes
 
         public void Dispose()
         {
-            GC.SuppressFinalize(array);
+            GC.SuppressFinalize(this);
         }
 
         public new String Value()
@@ -70,6 +72,8 @@ namespace DataTypes
 
         public void AddRange(CsvCollection range)
         {
+            if ((object)range == null)
+                throw new QueryTextDriverException("Не передана ссылка на диапазон");
             foreach (CsvObject value in range)
                 this.Add(value);
         }
@@ -94,7 +98,7 @@ namespace DataTypes
         {
             string result = "[{0}]";
             foreach (CsvObject obj in array)
-                result = String.Format(result, obj.Value().ToString() + ",{0}");
+                result = String.Format(CultureInfo.CurrentCulture, result, obj.Value().ToString() + ",{0}");
             return new StringObject(result.Substring(0, result.Length - 5) + "]");
         }
 
@@ -126,6 +130,8 @@ namespace DataTypes
 
         public override BoolObject InRange(RangeObject range)
         {
+            if ((object)range == null)
+                throw new QueryTextDriverException("Не передана ссылка на диапазон");
             bool included = true;
             foreach (CsvObject obj in array)
                 if ((obj < range.StartObject).Value() || (obj > range.EndObject).Value())

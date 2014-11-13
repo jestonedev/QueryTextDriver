@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using QueryTextDriverExceptionNS;
@@ -10,7 +11,7 @@ namespace DataTypes
     {
         public StringObject(object value)
         {
-            this.value = System.Convert.ToString(value);
+            this.value = System.Convert.ToString(value, CultureInfo.CurrentCulture);
         }
 
         public override IntObject AsInt()
@@ -53,6 +54,8 @@ namespace DataTypes
 
         public static CsvObject operator +(StringObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"+\" не передана ссылка на объект");
             return new StringObject(value1.Value() + value2.AsString().Value());
         }
 
@@ -78,16 +81,18 @@ namespace DataTypes
 
         public static BoolObject operator >(StringObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value2.GetType() == typeof(IntObject))
-                return new BoolObject(value1.Value().CompareTo(((IntObject)value2).AsString().Value()) > 0);
+                return new BoolObject(String.Compare(value1.Value(),((IntObject)value2).AsString().Value(), StringComparison.CurrentCulture) > 0);
             if (value2.GetType() == typeof(DoubleObject))
-                return new BoolObject(value1.Value().CompareTo(((DoubleObject)value2).AsString().Value()) > 0);
+                return new BoolObject(String.Compare(value1.Value(), ((DoubleObject)value2).AsString().Value(), StringComparison.CurrentCulture) > 0);
             if (value2.GetType() == typeof(DateTimeObject))
-                return new BoolObject(value1.Value().CompareTo(((DateTimeObject)value2).AsString().Value()) > 0);
+                return new BoolObject(String.Compare(value1.Value(), ((DateTimeObject)value2).AsString().Value(), StringComparison.CurrentCulture) > 0);
             if (value2.GetType() == typeof(BoolObject))
-                return new BoolObject(value1.Value().CompareTo(((BoolObject)value2).AsString().Value()) > 0);
+                return new BoolObject(String.Compare(value1.Value(), ((BoolObject)value2).AsString().Value(), StringComparison.CurrentCulture) > 0);
             if (value2.GetType() == typeof(StringObject))
-                return new BoolObject(value1.Value().CompareTo(value2.Value()) > 0);
+                return new BoolObject(String.Compare(value1.Value(), ((StringObject)value2).Value(), StringComparison.CurrentCulture) > 0);
             QueryTextDriverException exception = new QueryTextDriverException("Неизвестный тип данных {0}");
             exception.Data.Add("{0}", value2.GetType().ToString());
             throw exception;
@@ -95,16 +100,18 @@ namespace DataTypes
 
         public static BoolObject operator <(StringObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value2.GetType() == typeof(IntObject))
-                return new BoolObject(value1.Value().CompareTo(((IntObject)value2).AsString().Value()) < 0);
+                return new BoolObject(String.Compare(value1.Value(), ((IntObject)value2).AsString().Value(), StringComparison.CurrentCulture) < 0);
             if (value2.GetType() == typeof(DoubleObject))
-                return new BoolObject(value1.Value().CompareTo(((DoubleObject)value2).AsString().Value()) < 0);
+                return new BoolObject(String.Compare(value1.Value(), ((DoubleObject)value2).AsString().Value(), StringComparison.CurrentCulture) < 0);
             if (value2.GetType() == typeof(DateTimeObject))
-                return new BoolObject(value1.Value().CompareTo(((DateTimeObject)value2).AsString().Value()) < 0);
+                return new BoolObject(String.Compare(value1.Value(), ((DateTimeObject)value2).AsString().Value(), StringComparison.CurrentCulture) < 0);
             if (value2.GetType() == typeof(BoolObject))
-                return new BoolObject(value1.Value().CompareTo(((BoolObject)value2).AsString().Value()) < 0);
+                return new BoolObject(String.Compare(value1.Value(), ((BoolObject)value2).AsString().Value(), StringComparison.CurrentCulture) < 0);
             if (value2.GetType() == typeof(StringObject))
-                return new BoolObject(value1.Value().CompareTo(value2.Value()) < 0);
+                return new BoolObject(String.Compare(value1.Value(), ((StringObject)value2).Value(), StringComparison.CurrentCulture) < 0);
             QueryTextDriverException exception = new QueryTextDriverException("Неизвестный тип данных {0}");
             exception.Data.Add("{0}", value2.GetType().ToString());
             throw exception;
@@ -112,16 +119,18 @@ namespace DataTypes
 
         public static BoolObject operator ==(StringObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value2.GetType() == typeof(IntObject))
-                return new BoolObject(value1.Value().CompareTo(((IntObject)value2).AsString().Value()) == 0);
+                return new BoolObject(String.Compare(value1.Value(), ((IntObject)value2).AsString().Value(), StringComparison.CurrentCulture) == 0);
             if (value2.GetType() == typeof(DoubleObject))
-                return new BoolObject(value1.Value().CompareTo(((DoubleObject)value2).AsString().Value()) == 0);
+                return new BoolObject(String.Compare(value1.Value(), ((DoubleObject)value2).AsString().Value(), StringComparison.CurrentCulture) == 0);
             if (value2.GetType() == typeof(DateTimeObject))
-                return new BoolObject(value1.Value().CompareTo(((DateTimeObject)value2).AsString().Value()) == 0);
+                return new BoolObject(String.Compare(value1.Value(), ((DateTimeObject)value2).AsString().Value(), StringComparison.CurrentCulture) == 0);
             if (value2.GetType() == typeof(BoolObject))
-                return new BoolObject(value1.Value().CompareTo(((BoolObject)value2).AsString().Value()) == 0);
+                return new BoolObject(String.Compare(value1.Value(), ((BoolObject)value2).AsString().Value(), StringComparison.CurrentCulture) == 0);
             if (value2.GetType() == typeof(StringObject))
-                return new BoolObject(value1.Value().CompareTo(value2.Value()) == 0);
+                return new BoolObject(String.Compare(value1.Value(), ((StringObject)value2).Value(), StringComparison.CurrentCulture) == 0);
             return new BoolObject(false);
         }
 

@@ -7,6 +7,7 @@ using DataTypes;
 using QueryTextDriverExceptionNS;
 using System.IO;
 using System.Collections.ObjectModel;
+using System.Globalization;
 
 namespace QueryTextDriver
 {
@@ -28,16 +29,21 @@ namespace QueryTextDriver
         private string fileName;
 
         //Строки, которые будут изменены
-        public RowJoin updateRows = new RowJoin();
+        private RowJoin updateRows = new RowJoin();
 
         public UpdateLinq(QueryConfig config)
         {
-            this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader);
+            if (config == null)
+                this.config = new QueryConfig(" ", Environment.NewLine, false, false);
+            else
+                this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader, config.IgnoreDataTypes);
             this.evaluator = ExpressionEvaluator.CreateEvaluator(this.config);
         }
 
         public IUpdate From(TLzTable table)
         {
+            if (table == null)
+                throw new QueryTextDriverException("Не передана ссылка на таблицу");
             if (table.SubQuery != null)
             {
                 QueryTextDriverException exception = new QueryTextDriverException("Некорректное использование подзапроса {0}");
@@ -52,9 +58,9 @@ namespace QueryTextDriver
                 throw exception;
             }
             //Формируем таблицу из файла
-            StreamReader sr = new StreamReader(fileName);
-            string text = sr.ReadToEnd();
-            sr.Close();
+            string text = "";
+            using (StreamReader sr = new StreamReader(fileName))
+                text = sr.ReadToEnd();
             string[] rowsStr = text.Split(new string[] { config.RowSeparator }, StringSplitOptions.None);
             TableClass tableInfo = new TableClass();
             tableInfo.TableName = fileName;
@@ -85,13 +91,13 @@ namespace QueryTextDriver
                         for (int j = 0; j < cells.Length; j++)
                             columns[j].ColumnName = cells[j];
                         for (int j = cells.Length; j < columnCount; j++)
-                            columns[j].ColumnName = "`" + (j + 1).ToString() + "`";
+                            columns[j].ColumnName = "`" + (j + 1).ToString(CultureInfo.CurrentCulture) + "`";
                         continue;
                     }
                     else
                     {
                         for (int j = 0; j < columnCount; j++)
-                            columns[j].ColumnName = "`" + (j + 1).ToString() + "`";
+                            columns[j].ColumnName = "`" + (j + 1).ToString(CultureInfo.CurrentCulture) + "`";
                     }
                 }
                 //Заполняем колонки и строки
@@ -102,9 +108,9 @@ namespace QueryTextDriver
                 {
                     CellClass cell;
                     if (j < cells.Length)
-                        cell = new CellClass(cells[j], columns[j], row);
+                        cell = new CellClass(cells[j], columns[j], row, config.IgnoreDataTypes);
                     else
-                        cell = new CellClass("", columns[j], row);
+                        cell = new CellClass("", columns[j], row, config.IgnoreDataTypes);
                     row.Cells.Add(cell);
                     columns[j].AddCell(cell);
                 }
@@ -148,6 +154,8 @@ namespace QueryTextDriver
 
         public int Set(TLzFieldList fields)
         {
+            if (fields == null)
+                throw new QueryTextDriverException("Не передана ссылка на список изменяемых полей");
             if (updateRows.Rows.Count == 0)
                 return 0;
             for (int i = 0; i < updateRows.Rows.Count; i++)
@@ -156,7 +164,7 @@ namespace QueryTextDriver
                 //Объединяем ячейки для вычисления выражения
                 CellJoin cellJoin = new CellJoin();
                 for (int j = 0; j < updateRows.Rows[i].Cells.Count; j++ )
-                    cellJoin.Cells.Add(new CellClass(updateRows.Rows[i].Cells[j].Value.Value(), updateRows.Rows[i].Cells[j].Column, updateRows.Rows[i].Cells[j].Row));
+                    cellJoin.Cells.Add(new CellClass(updateRows.Rows[i].Cells[j].Value.Value(), updateRows.Rows[i].Cells[j].Column, updateRows.Rows[i].Cells[j].Row, config.IgnoreDataTypes));
                 //Проходим по всем полям и UPDATE'им их
                 foreach (TLzField field in fields)
                 {
@@ -197,7 +205,6 @@ namespace QueryTextDriver
                 }
             }
             //Сохраняем изменения в файл
-            StreamWriter sw = new StreamWriter(fileName);
             string csv = "";
             if (config.FirstRowHeader)
             {
@@ -216,8 +223,8 @@ namespace QueryTextDriver
                 if (i != resultJoin.Rows.Count - 1)
                     csv += config.RowSeparator;
             }
-            sw.Write(csv);
-            sw.Close();
+            using (StreamWriter sw = new StreamWriter(fileName))
+                sw.Write(csv);
             //Возвращаем число измененных строк
             return updateRows.Rows.Count;
         }

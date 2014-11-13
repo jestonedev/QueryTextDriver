@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using QueryTextDriverExceptionNS;
 
 namespace DataTypes
 {
@@ -42,7 +44,7 @@ namespace DataTypes
 
         public override StringObject AsString()
         {
-            return new StringObject(String.Format("[{0},{1}]", StartObject.Value().ToString(), EndObject.Value().ToString()));
+            return new StringObject(String.Format(CultureInfo.CurrentCulture, "[{0},{1}]", StartObject.Value().ToString(), EndObject.Value().ToString()));
         }
 
         public override DateTimeObject AsDateTime()
@@ -73,6 +75,8 @@ namespace DataTypes
 
         public override BoolObject InRange(RangeObject range)
         {
+            if ((object)range == null)
+                throw new QueryTextDriverException("Не передана ссылка на диапазон");
             if ((this.StartObject > range.StartObject).Value() && (this.EndObject < range.EndObject).Value())
                 return new BoolObject(true);
             else

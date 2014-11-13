@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using gudusoft.gsqlparser;
+using QueryTextDriverExceptionNS;
 
 namespace QueryTextDriver
 {
-    public class QueryHelper
+    public sealed class QueryHelper
     {
         private QueryHelper()
         {
@@ -19,6 +20,8 @@ namespace QueryTextDriver
             double result2;
             DateTime result3;
             bool result4;
+            if (value == null)
+                throw new QueryTextDriverException("Не задана ссылка на объект");
             if (int.TryParse(value.ToString(), out result))
                 return typeof(int);
             else

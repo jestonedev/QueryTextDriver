@@ -18,6 +18,8 @@ namespace DataTypes
 
         public ColumnClass(Collection<CellClass> cells, string columnName, string columnAlias, TableClass table)
         {
+            if (cells == null)
+                throw new QueryTextDriverException("Не передана ссылка на список ячеек колонки");
             this.Cells = new Collection<CellClass>();
             foreach (CellClass cell in cells)
                 AddCell(cell);
@@ -41,6 +43,8 @@ namespace DataTypes
 
         public void AddCell(CellClass cell)
         {
+            if (cell == null)
+                throw new QueryTextDriverException("Не передана ссылка на ячейку колонки");
             Cells.Add(cell);
             Type CellType = cell.ValueType;
             //Если тип значений колонки не задан, то задаем его по значению текущей(первой) ячейки

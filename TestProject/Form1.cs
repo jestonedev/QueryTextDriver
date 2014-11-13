@@ -15,7 +15,7 @@ namespace TestProject
         public Form1()
         {
             InitializeComponent();
-            QueryExecutor executor = new QueryExecutor(",", "", false);
+            QueryExecutor executor = new QueryExecutor(",", "", false, false);
             executor.Execute("INSERT INTO \"C:\\Users\\IgnVV\\Desktop\\1.csv\" SELECT * FROM \"C:\\Users\\IgnVV\\Desktop\\1.csv\"");
         }
     }

@@ -22,6 +22,8 @@ namespace QueryTextDriver
 
         public void Add(RowClass row)
         {
+            if (row == null)
+                throw new QueryTextDriverException("Не задан ссылка на строку");
             if (sortList.Count == 0)
                 throw new QueryTextDriverException("Не заданы параметры сортировки");
             //Составляем список индексов значений, соответствующих сортировочному списку

@@ -25,6 +25,8 @@ namespace DataTypes
 
         public bool Equals(RowClass other)
         {
+            if ((object)other == null)
+                return false;
             if (this.Cells.Count != other.Cells.Count)
                 return false;
             for (int i = 0; i < other.Cells.Count; i++)

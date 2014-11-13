@@ -14,49 +14,54 @@ namespace QueryTextDriver
         private int rowsAffected;
         public int RowsAffected { get { return rowsAffected; } }
 
-        public QueryExecutor(string columnSeparator, string rowSeparator, bool firstRowHeader)
+        public QueryExecutor(string columnSeparator, string rowSeparator, bool firstRowHeader, bool ignoreDataTypes)
         {
             //Разделитель строк по умолчанию
             if (String.IsNullOrEmpty(rowSeparator) || (rowSeparator == null))
                 rowSeparator = Environment.NewLine;
-            this.config = new QueryConfig(columnSeparator, rowSeparator, firstRowHeader);
+            this.config = new QueryConfig(columnSeparator, rowSeparator, firstRowHeader, ignoreDataTypes);
         }
 
         public QueryExecutor(QueryConfig config)
         {
-            this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader);
+            if (config != null)
+                this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader, config.IgnoreDataTypes);
+            else
+                this.config = new QueryConfig(" ",Environment.NewLine, false, false);
         }
 
         public TableJoin Execute(string query)
         {
-            TGSqlParser parser = new TGSqlParser(TDbVendor.DbVMysql);
-            parser.SqlText.Text = query;
-            int result = parser.Parse();
-            if (result != 0)
-                throw new QueryTextDriverException(parser.ErrorMessages);
-            TableJoin rt = null;
-            rowsAffected = 0;
-            foreach (TCustomSqlStatement stmt in parser.SqlStatements)
+            using (TGSqlParser parser = new TGSqlParser(TDbVendor.DbVMysql))
             {
-                switch (stmt.SqlStatementType)
+                parser.SqlText.Text = query;
+                int result = parser.Parse();
+                if (result != 0)
+                    throw new QueryTextDriverException(parser.ErrorMessages);
+                TableJoin rt = null;
+                rowsAffected = 0;
+                foreach (TCustomSqlStatement stmt in parser.SqlStatements)
                 {
-                    case TSqlStatementType.sstSelect:
-                        rt = rt ?? Select((TSelectSqlStatement)stmt);
-                        break;
-                    case TSqlStatementType.sstUpdate:
-                        rowsAffected += Update((TUpdateSqlStatement)stmt);
-                        break;
-                    case TSqlStatementType.sstDelete:
-                        rowsAffected += Delete((TDeleteSqlStatement)stmt);
-                        break;
-                    case TSqlStatementType.sstInsert:
-                        rowsAffected += Insert((TInsertSqlStatement)stmt);
-                        break;
-                    default: 
-                        throw new QueryTextDriverException("SQL-запрос не распознан");
+                    switch (stmt.SqlStatementType)
+                    {
+                        case TSqlStatementType.sstSelect:
+                            rt = rt ?? Select((TSelectSqlStatement)stmt);
+                            break;
+                        case TSqlStatementType.sstUpdate:
+                            rowsAffected += Update((TUpdateSqlStatement)stmt);
+                            break;
+                        case TSqlStatementType.sstDelete:
+                            rowsAffected += Delete((TDeleteSqlStatement)stmt);
+                            break;
+                        case TSqlStatementType.sstInsert:
+                            rowsAffected += Insert((TInsertSqlStatement)stmt);
+                            break;
+                        default:
+                            throw new QueryTextDriverException("SQL-запрос не распознан");
+                    }
                 }
+                return rt;
             }
-            return rt;
         }
 
         private TableJoin Select(TSelectSqlStatement stmt)

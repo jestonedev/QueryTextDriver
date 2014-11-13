@@ -5,6 +5,7 @@ using System.Text;
 using System.Collections;
 using System.Collections.ObjectModel;
 using QueryTextDriverExceptionNS;
+using System.Globalization;
 
 namespace DataTypes
 {
@@ -16,25 +17,29 @@ namespace DataTypes
         {
         }
 
-        public static CsvObject Create(object value)
+        public static CsvObject Create(object value, bool ignoreDataType)
         {
+            if (value == null)
+                throw new QueryTextDriverException("Не передана ссылка на значение элемента");
+            if (ignoreDataType)
+                return new StringObject(System.Convert.ChangeType(value, typeof(string), CultureInfo.CurrentCulture));
             long result;
             double result2;
             DateTime result3;
             bool result4;
             if (long.TryParse(value.ToString(), out result))
-                return new IntObject(System.Convert.ChangeType(value, typeof(long)));
+                return new IntObject(System.Convert.ChangeType(value, typeof(long), CultureInfo.CurrentCulture));
             else
                 if (double.TryParse(value.ToString(), out result2))
-                    return new DoubleObject(System.Convert.ChangeType(value, typeof(double)));
+                    return new DoubleObject(System.Convert.ChangeType(value, typeof(double), CultureInfo.CurrentCulture));
                 else
                     if (DateTime.TryParse(value.ToString(), out result3))
-                        return new DateTimeObject(System.Convert.ChangeType(value, typeof(DateTime)));
+                        return new DateTimeObject(System.Convert.ChangeType(value, typeof(DateTime), CultureInfo.CurrentCulture));
                     else
                         if (bool.TryParse(value.ToString(), out result4))
-                            return new BoolObject(System.Convert.ChangeType(value, typeof(bool)));
+                            return new BoolObject(System.Convert.ChangeType(value, typeof(bool), CultureInfo.CurrentCulture));
                         else
-                            return new StringObject(System.Convert.ChangeType(value, typeof(string)));
+                            return new StringObject(System.Convert.ChangeType(value, typeof(string), CultureInfo.CurrentCulture));
         }
 
         public Type GetValueType()
@@ -44,6 +49,8 @@ namespace DataTypes
 
         public CsvObject Convert(Type type)
         {
+            if (type == null)
+                throw new QueryTextDriverException("Не передана ссылка на тип данных");
             if (type == typeof(long))
                 return new IntObject(this.value);
             else
@@ -81,6 +88,8 @@ namespace DataTypes
 
         public static CsvObject operator +(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"+\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) + value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -98,6 +107,8 @@ namespace DataTypes
 
         public static CsvObject operator -(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"-\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) - value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -115,6 +126,8 @@ namespace DataTypes
 
         public static CsvObject operator /(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"/\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) / value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -132,6 +145,8 @@ namespace DataTypes
 
         public static CsvObject operator *(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"*\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) * value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -149,6 +164,8 @@ namespace DataTypes
 
         public static CsvObject operator %(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"%\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) % value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -166,6 +183,8 @@ namespace DataTypes
 
         public static BoolObject operator >(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) > value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -183,6 +202,8 @@ namespace DataTypes
 
         public static BoolObject operator <(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) < value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -210,6 +231,8 @@ namespace DataTypes
 
         public static BoolObject operator ==(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                return new BoolObject(false);
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) == value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -230,6 +253,8 @@ namespace DataTypes
 
         public static CsvObject operator |(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"|\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) | value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -247,6 +272,8 @@ namespace DataTypes
 
         public static CsvObject operator &(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"&\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) & value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -264,6 +291,8 @@ namespace DataTypes
 
         public static CsvObject operator ^(CsvObject value1, CsvObject value2)
         {
+            if (((object)value1 == null) || ((object)value2 == null))
+                throw new QueryTextDriverException("В оператор \"^\" не передана ссылка на объект");
             if (value1.GetType() == typeof(IntObject))
                 return (((IntObject)value1) ^ value2);
             if (value1.GetType() == typeof(DoubleObject))
@@ -336,6 +365,8 @@ namespace DataTypes
 
         public virtual BoolObject InRange(RangeObject range)
         {
+            if ((object)range == null)
+                throw new QueryTextDriverException("Не передана ссылка на диапазон");
             if ((this > range.StartObject).Value() && (this < range.EndObject).Value())
                 return new BoolObject(true);
             else
@@ -346,6 +377,5 @@ namespace DataTypes
         {
             return value;
         }
-    
     }
 }

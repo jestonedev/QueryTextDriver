@@ -23,16 +23,21 @@ namespace QueryTextDriver
         private string fileName;
 
         //Вставленные строки
-        public RowJoin InsertedRows = new RowJoin();
+        private RowJoin InsertedRows = new RowJoin();
 
         public InsertLinq(QueryConfig config)
         {
-            this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader);
+            if (config == null)
+                this.config = new QueryConfig(" ", Environment.NewLine, false, false);
+            else
+                this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader, config.IgnoreDataTypes);
             this.evaluator = ExpressionEvaluator.CreateEvaluator(this.config);
         }
 
         public IInsertInto Into(TLzTable table)
         {
+            if (table == null)
+                throw new QueryTextDriverException("Не передана ссылка на таблицу");
             fileName = table.TableToken.AsText.Trim(new char[] { '"' });
             if (!File.Exists(fileName))
             {
@@ -45,6 +50,8 @@ namespace QueryTextDriver
 
         public int Values(TLz_List values)
         {
+            if (values == null)
+                throw new QueryTextDriverException("Не передана ссылка на список вставляемых значений");
             int rowAffected = 0;
             for (int i = 0; i < values.Count(); i++)
             {
@@ -67,6 +74,8 @@ namespace QueryTextDriver
 
         public int Values(TableJoin values)
         {
+            if (values == null)
+                throw new QueryTextDriverException("Не передана ссылка на список вставляемых значений");
             for (int i = 0; i < values.Rows.Count; i++)
                 InsertedRows.Rows.Add(values.Rows[i]);
             SaveValuesToFile();

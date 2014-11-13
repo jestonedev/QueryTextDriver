@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using System.Collections.ObjectModel;
 using DataTypes;
 using QueryTextDriverExceptionNS;
+using System.Globalization;
 
 namespace QueryTextDriver
 {
@@ -79,13 +80,18 @@ namespace QueryTextDriver
 
         public SelectLinq(QueryConfig config)
         {
-            this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader);
+            if (config == null)
+                this.config = new QueryConfig(" ", Environment.NewLine, false, false);
+            else
+                this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader, config.IgnoreDataTypes);
             this.evaluator = ExpressionEvaluator.CreateEvaluator(this.config);
             this.EndIndex = int.MaxValue;
         }
 
         public ISelectFrom From(TLzTableList tables)
         {
+            if (tables == null)
+                throw new QueryTextDriverException("Не передана ссылка на список таблиц");
             if (tables.Count() == 0)
                 resultJoin.Rows.Add(new RowClass());
             foreach (TLzTable table in tables)
@@ -105,9 +111,9 @@ namespace QueryTextDriver
                         throw exception;
                     }
                     //Формируем таблицу из файла
-                    StreamReader sr = new StreamReader(fileName);
-                    string text = sr.ReadToEnd();
-                    sr.Close();
+                    string text = "";
+                    using (StreamReader sr = new StreamReader(fileName))
+                       text = sr.ReadToEnd();
                     string[] rowsStr = text.Split(new string[] { config.RowSeparator }, StringSplitOptions.None);
                     TableClass tableInfo = new TableClass();
                     tableInfo.TableName = fileName;
@@ -138,13 +144,13 @@ namespace QueryTextDriver
                                 for (int j = 0; j < cells.Length; j++)
                                     columns[j].ColumnName = cells[j];
                                 for (int j = cells.Length; j < columnCount; j++)
-                                    columns[j].ColumnName = "`" + (j + 1).ToString() + "`";
+                                    columns[j].ColumnName = "`" + (j + 1).ToString(CultureInfo.CurrentCulture) + "`";
                                 continue;
                             }
                             else
                             {
                                 for (int j = 0; j < columnCount; j++)
-                                    columns[j].ColumnName = "`" + (j + 1).ToString() + "`";
+                                    columns[j].ColumnName = "`" + (j + 1).ToString(CultureInfo.CurrentCulture) + "`";
                             }
                         }
                         //Заполняем колонки и строки
@@ -155,9 +161,9 @@ namespace QueryTextDriver
                         {
                             CellClass cell;
                             if (j < cells.Length)
-                                cell = new CellClass(cells[j], columns[j], row);
+                                cell = new CellClass(cells[j], columns[j], row, config.IgnoreDataTypes);
                             else
-                                cell = new CellClass("", columns[j], row);
+                                cell = new CellClass("", columns[j], row, config.IgnoreDataTypes);
                             row.Cells.Add(cell);
                             columns[j].AddCell(cell);
                         }
@@ -172,6 +178,8 @@ namespace QueryTextDriver
 
         public ISelectJoin Join(TLzJoinList joins)
         {
+            if (joins == null)
+                throw new QueryTextDriverException("Не передана ссылка на коллекцию объединений");
             Collection<TableJoin> dekart_tables = new Collection<TableJoin>();
             int index = 0;  //Индекс таблицы в списке таблиц
             foreach (TLzJoin join in joins)
@@ -249,6 +257,8 @@ namespace QueryTextDriver
 
         private TableJoin InnerJoin(TableJoin left, TableJoin right, TLzCustomExpression expression)
         {
+            if ((left == null) || (right == null) || (expression == null))
+                throw new QueryTextDriverException("Заданы не все обязательные параметры");
             Collection<ColumnClass> new_columns = new Collection<ColumnClass>();
             Collection<RowClass> new_rows = new Collection<RowClass>();
             RowJoin rowJoin = new RowJoin();
@@ -306,6 +316,8 @@ namespace QueryTextDriver
 
         private TableJoin LeftJoin(TableJoin left, TableJoin right, TLzCustomExpression expression)
         {
+            if ((left == null) || (right == null) || (expression == null))
+                throw new QueryTextDriverException("Заданы не все обязательные параметры");
             Collection<ColumnClass> new_columns = new Collection<ColumnClass>();
             Collection<RowClass> new_rows = new Collection<RowClass>();
             RowJoin rowJoin = new RowJoin();
@@ -373,7 +385,7 @@ namespace QueryTextDriver
                     }
                     for (int k = 0; k < right.Columns.Count; k++)
                     {
-                        CellClass cell = new CellClass("", new_columns[left.Columns.Count + k], row);
+                        CellClass cell = new CellClass("", new_columns[left.Columns.Count + k], row, config.IgnoreDataTypes);
                         row.Cells.Add(cell);
                         new_columns[left.Columns.Count + k].AddCell(cell);
                     }
@@ -384,6 +396,8 @@ namespace QueryTextDriver
 
         private TableJoin RightJoin(TableJoin left, TableJoin right, TLzCustomExpression expression)
         {
+            if ((left == null) || (right == null) || (expression == null))
+                throw new QueryTextDriverException("Заданы не все обязательные параметры");
             Collection<ColumnClass> new_columns = new Collection<ColumnClass>();
             Collection<RowClass> new_rows = new Collection<RowClass>();
             RowJoin rowJoin = new RowJoin();
@@ -446,7 +460,7 @@ namespace QueryTextDriver
                     new_rows.Add(row);
                     for (int k = 0; k < left.Columns.Count; k++)
                     {
-                        CellClass cell = new CellClass("", new_columns[k], row);
+                        CellClass cell = new CellClass("", new_columns[k], row, config.IgnoreDataTypes);
                         row.Cells.Add(cell);
                         new_columns[k].AddCell(cell);
                     }
@@ -461,7 +475,7 @@ namespace QueryTextDriver
         }
 
         public ISelectWhere Where(TLzCustomExpression expression, QueryConfig config)
-        {
+        {          
             if (expression == null)
                 return this;
             Collection<ColumnClass> new_columns = new Collection<ColumnClass>();
@@ -527,6 +541,8 @@ namespace QueryTextDriver
 
         public TableJoin Select(TLzFieldList fields)
         {
+            if (fields == null)
+                throw new QueryTextDriverException("Не задана ссылка на список полей для выборки данных");
             TableJoin result = new TableJoin();
 
             //Формируем выходные строки
@@ -611,7 +627,7 @@ namespace QueryTextDriver
                                 result.Rows[k].Cells[columnIndex].Column = column;
                             }
                             columnIndex++;
-                            column.ColumnName = "`" + columnIndex.ToString() + "`";
+                            column.ColumnName = "`" + columnIndex.ToString(CultureInfo.CurrentCulture) + "`";
                             result.Columns.Add(column);
                         }
                     }
@@ -624,7 +640,7 @@ namespace QueryTextDriver
                     result.Rows[j].Cells[columnIndex].Column = newColumn;
                 }
                 columnIndex++;
-                newColumn.ColumnName = "`" + columnIndex.ToString() + "`";
+                newColumn.ColumnName = "`" + columnIndex.ToString(CultureInfo.CurrentCulture) + "`";
                 if (fields[i].aliasclause != null)
                     newColumn.ColumnAlias = fields[i].aliasclause.aliastext;
                 result.Columns.Add(newColumn);
@@ -634,6 +650,12 @@ namespace QueryTextDriver
 
         public RowClass SelectRow(RowClass row, RowJoin rowJoin, TLzFieldList fields)
         {
+            if (fields == null)
+                throw new QueryTextDriverException("Не задана ссылка на список полей для выборки");
+            if (row == null)
+                throw new QueryTextDriverException("Не задана ссылка на объект row");
+            if (row == null)
+                throw new QueryTextDriverException("Не задана ссылка на объект rowJoin");
             RowClass newRow = new RowClass();
             foreach (TLzField field in fields)
             {

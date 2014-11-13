@@ -18,9 +18,9 @@ namespace DataTypes
             }
         }
 
-        public CellClass(object value, ColumnClass column, RowClass row)
+        public CellClass(object value, ColumnClass column, RowClass row, bool ignoreDataType)
         {
-            this.Value = CsvObject.Create(value);
+            this.Value = CsvObject.Create(value, ignoreDataType);
             this.Column = column;
             this.Row = row;
         }

@@ -6,6 +6,7 @@ using gudusoft.gsqlparser;
 using System.Text.RegularExpressions;
 using DataTypes;
 using QueryTextDriverExceptionNS;
+using System.Globalization;
 
 namespace QueryTextDriver
 {
@@ -23,7 +24,10 @@ namespace QueryTextDriver
             if (ExpressionEvaluator.singleton == null)
             {
                 ExpressionEvaluator evaluator = new ExpressionEvaluator();
-                evaluator.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader);
+                if (config != null)
+                    evaluator.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader, config.IgnoreDataTypes);
+                else
+                    evaluator.config = new QueryConfig(" ", Environment.NewLine, false, false);
                 ExpressionEvaluator.singleton = evaluator;
                 return evaluator;
             }
@@ -33,11 +37,13 @@ namespace QueryTextDriver
 
         public bool IsAggregate(TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение агрегатора");
             switch (expression.oper)
             {
                 case TLzOpType.Expr_FuncCall:
                     TLz_FuncCall func = (TLz_FuncCall)expression.lexpr;
-                    switch (func.FunctionName.ToLower())
+                    switch (func.FunctionName.ToLower(CultureInfo.CurrentCulture))
                     {
                         case "max":
                         case "min":
@@ -60,6 +66,8 @@ namespace QueryTextDriver
 
         public CsvObject Evaluate(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение агрегатора");
             switch (expression.oper)
             {
                 case TLzOpType.Expr_AND:
@@ -105,7 +113,7 @@ namespace QueryTextDriver
                     string value = expression.AsText;
                     if (QueryHelper.GetValueType(value) == typeof(string))
                         value = value.Trim(new char[] {'\''});
-                    return CsvObject.Create(value);
+                    return CsvObject.Create(value, config.IgnoreDataTypes);
                 case TLzOpType.Expr_In: ;
                     return InEval(cellJoin, rowGroup, expression);
                 case TLzOpType.Expr_NotIn: ;
@@ -293,8 +301,10 @@ namespace QueryTextDriver
 
         private CsvObject FuncEval(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
             TLz_FuncCall func = (TLz_FuncCall)expression.lexpr;
-            switch (func.FunctionName.ToLower())
+            switch (func.FunctionName.ToLower(CultureInfo.CurrentCulture))
             {
                 case "max": return FuncMaxEval(cellJoin, rowGroup, func, expression.Location);
                 case "min": return FuncMinEval(cellJoin, rowGroup, func, expression.Location);
@@ -310,6 +320,8 @@ namespace QueryTextDriver
 
         private BoolObject BetweenEval(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
             CsvObject lval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.lexpr);
             CsvObject rval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.rexpr);
             RangeObject range = rval.AsRange();
@@ -321,6 +333,8 @@ namespace QueryTextDriver
 
         public BoolObject LikeEval(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
             StringObject lval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.lexpr).AsString();
             StringObject rval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.rexpr).AsString();
             rval = new StringObject(rval.Value().Replace("%", ".*"));
@@ -332,6 +346,8 @@ namespace QueryTextDriver
 
         private BoolObject InEval(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
             CsvObject lval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.lexpr);
             CsvObject rval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.rexpr);
             CsvCollection array = rval.AsArray();
@@ -344,6 +360,8 @@ namespace QueryTextDriver
 
         private CsvObject BitWiseEval(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
             CsvObject lval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.lexpr);
             CsvObject rval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.rexpr);
 
@@ -361,6 +379,8 @@ namespace QueryTextDriver
 
         private CsvObject ArithmeticEval(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
             CsvObject lval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.lexpr);
             CsvObject rval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.rexpr);
 
@@ -388,6 +408,8 @@ namespace QueryTextDriver
         /// </summary>
         private BoolObject ComparisonEval(CellJoin cellJoin, RowJoin rowGroup, TLzCustomExpression expression)
         {
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
             CsvObject lval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.lexpr);
             CsvObject rval = Evaluate(cellJoin, rowGroup, (TLzCustomExpression)expression.rexpr);
             string oper = expression.opname.AsText;
@@ -416,16 +438,18 @@ namespace QueryTextDriver
         /// </summary>
         private CsvObject GetAttr(CellJoin cellJoin, TLzCustomExpression expression)
         {
-            if (expression.AsText.ToLower() == "true")
+            if (expression == null)
+                throw new QueryTextDriverException("Не передана ссылка на выражение");
+            if (expression.AsText.ToLower(CultureInfo.CurrentCulture) == "true")
                 return new BoolObject(true);
-            if (expression.AsText.ToLower() == "false")
+            if (expression.AsText.ToLower(CultureInfo.CurrentCulture) == "false")
                 return new BoolObject(false);
             string TableName = ((TLz_Attr)expression.lexpr).Prefix;
             string ColumnName = ((TLz_Attr)expression.lexpr).ColumnNameToken.AsText;
             foreach (CellClass cell in cellJoin.Cells)
             {
                 if ((cell.Column.ColumnName == ColumnName) &&
-                    ((cell.Column.Table.TableName == TableName) || (cell.Column.Table.TableAlias == TableName) || TableName == ""))
+                    ((cell.Column.Table.TableName == TableName) || (cell.Column.Table.TableAlias == TableName) || String.IsNullOrEmpty(TableName)))
                     return cell.Value;
             }
             QueryTextDriverException exception = new QueryTextDriverException("Неизвестный атрибут {0}");
