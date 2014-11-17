@@ -1,9 +1,0 @@
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\bin\Release\DataTypes.dll
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\bin\Release\DataTypes.pdb
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\bin\Release\QueryTextDriverException.dll
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\bin\Release\QueryTextDriverException.pdb
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\obj\Release\DataTypes.dll
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\obj\Release\DataTypes.pdb
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\bin\Release\DataTypes.dll.CodeAnalysisLog.xml
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\bin\Release\DataTypes.dll.lastcodeanalysissucceeded
-D:\Projects\Visual Studio Projects\QueryTextDriver\DataTypes\obj\Release\DataTypes.csprojResolveAssemblyReference.cache
