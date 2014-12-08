@@ -15,8 +15,8 @@ namespace TestProject
         public Form1()
         {
             InitializeComponent();
-            QueryExecutor executor = new QueryExecutor(",", "", false, false);
-            executor.Execute("INSERT INTO \"C:\\Users\\IgnVV\\Desktop\\1.csv\" SELECT * FROM \"C:\\Users\\IgnVV\\Desktop\\1.csv\"");
+            QueryExecutor executor = new QueryExecutor(",", "",true, false);
+            executor.Execute("SELECT COUNT(*) FROM (SELECT SUM(name) AS name_test FROM \"C:\\Users\\Ignatov\\Desktop\\1.csv\" GROUP BY surname) v ORDER BY name_test DESC");
         }
     }
 }

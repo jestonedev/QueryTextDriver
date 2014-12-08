@@ -61,7 +61,7 @@
   <ItemGroup>
     <Reference Include="gudusoft.gsqlparser, Version=2.4.0.25680, Culture=neutral, PublicKeyToken=1e1734490a0fe9ed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Users\IgnVV\Downloads\gsqlparser_dotnet_trial_2_4_0\dotnet_trial\gudusoft.gsqlparser.dll</HintPath>
+      <HintPath>..\gudusoft.gsqlparser.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">

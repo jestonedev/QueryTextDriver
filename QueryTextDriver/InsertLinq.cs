@@ -42,7 +42,7 @@ namespace QueryTextDriver
             if (!File.Exists(fileName))
             {
                 QueryTextDriverException exception = new QueryTextDriverException("Файл {0} не существует");
-                exception.Data.Add("{0}", table.Name);
+                exception.Data.Add("{0}", fileName);
                 throw exception;
             }
             return this;

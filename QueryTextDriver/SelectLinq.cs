@@ -100,6 +100,11 @@ namespace QueryTextDriver
                 {
                     QueryExecutor executor = new QueryExecutor(config);
                     this.tmpJoins.Add(executor.Execute(table.SubQuery.AsText));
+                    foreach (ColumnClass column in this.tmpJoins[this.tmpJoins.Count - 1].Columns)
+                    {
+                        column.Table.TableName = "";
+                        column.Table.TableAlias = table.AliasClause.aliastext;
+                    }
                 }
                 else
                 {
@@ -544,7 +549,7 @@ namespace QueryTextDriver
             if (fields == null)
                 throw new QueryTextDriverException("Не задана ссылка на список полей для выборки данных");
             TableJoin result = new TableJoin();
-
+            Collection<ColumnClass> columns = new Collection<ColumnClass>();
             //Формируем выходные строки
             int rowIndex = 0; //Номер строки
             if ((orderJoins.Count == 1) && (rowGroups.Count == 0))
@@ -561,6 +566,7 @@ namespace QueryTextDriver
                 if (orderJoins.Count > 1)
                 {
                     //Если сортировочных групп больше 1, то используется группировка => вычислять только одну строку для каждой группы
+                    
                     for (int i = 0; i < orderJoins.Count; i++)
                     {
                         if ((rowIndex >= StartIndex) && (rowIndex <= EndIndex))
@@ -615,35 +621,74 @@ namespace QueryTextDriver
                 //Если используется * в качестве поля, то
                 if (fields[i].FieldName == "*")
                 {
+                    for (int j = 0; j < resultJoin.Columns.Count; j++ )
+                    {
+                        if (String.IsNullOrEmpty(fields[i].FieldPrefix) || (fields[i].FieldPrefix == resultJoin.Columns[j].Table.TableAlias) ||
+                            (fields[i].FieldPrefix == resultJoin.Columns[j].Table.TableName))
+                        {
+                            ColumnClass column = new ColumnClass();
+                            column.ColumnName = resultJoin.Columns[j].ColumnName;
+                            column.ColumnType = resultJoin.Columns[j].ColumnType;
+                            column.Table = resultJoin.Columns[j].Table;
+                            result.Columns.Add(column);
+                            columnIndex++;
+                        }
+                    }
+
                     for (int j = 0; resultJoin.Rows.Count > 0 && j < resultJoin.Rows[0].Cells.Count; j++)
                     {
                         if (String.IsNullOrEmpty(fields[i].FieldPrefix) || (fields[i].FieldPrefix == resultJoin.Rows[0].Cells[j].Column.Table.TableAlias) ||
                             (fields[i].FieldPrefix == resultJoin.Rows[0].Cells[j].Column.Table.TableName))
                         {
-                            ColumnClass column = new ColumnClass();
                             for (int k = 0; k < result.Rows.Count; k++)
                             {
-                                column.AddCell(result.Rows[k].Cells[columnIndex]);
-                                result.Rows[k].Cells[columnIndex].Column = column;
+                                result.Columns[result.Columns.Count - 1].AddCell(result.Rows[k].Cells[result.Columns.Count - 1]);
+                                result.Rows[k].Cells[result.Columns.Count - 1].Column = result.Columns[result.Columns.Count - 1];
                             }
-                            columnIndex++;
-                            column.ColumnName = "`" + columnIndex.ToString(CultureInfo.CurrentCulture) + "`";
-                            result.Columns.Add(column);
                         }
                     }
                     continue;
                 }
-                ColumnClass newColumn = new ColumnClass();
+                bool foundedField = false;
+                for (int j = 0; j < resultJoin.Columns.Count; j++)
+                {
+                    string TableName = fields[i].FieldPrefix;
+                    string ColumnName = fields[i].FieldName;
+                    string ColumnAlias = fields[i].FieldAlias;
+                    if ((resultJoin.Columns[j].ColumnName == ColumnName) &&
+                        ((resultJoin.Columns[j].Table.TableName == TableName) || (resultJoin.Columns[j].Table.TableAlias == TableName) ||
+                        String.IsNullOrEmpty(TableName)))
+                    {
+                        ColumnClass newColumn = new ColumnClass();
+                        if (ColumnAlias == "")
+                            newColumn.ColumnName = resultJoin.Columns[j].ColumnName;
+                        else
+                            newColumn.ColumnName = ColumnAlias;
+                        newColumn.ColumnType = resultJoin.Columns[j].ColumnType;
+                        newColumn.Table = resultJoin.Columns[j].Table;
+                        result.Columns.Add(newColumn);
+                        columnIndex++;
+                        foundedField = true;
+                        break;
+                    }
+                }
+                if (!foundedField)
+                {
+                    string ColumnAlias = fields[i].FieldAlias;
+                    ColumnClass newColumn = new ColumnClass();
+                    if (ColumnAlias == "")
+                        newColumn.ColumnName = '`'+(columnIndex+1).ToString()+'`';
+                    else
+                        newColumn.ColumnName = ColumnAlias;
+                    result.Columns.Add(newColumn);
+                    columnIndex++;
+                }
                 for (int j = 0; j < result.Rows.Count; j++)
                 {
-                    newColumn.AddCell(result.Rows[j].Cells[columnIndex]);
-                    result.Rows[j].Cells[columnIndex].Column = newColumn;
+                    result.Columns[result.Columns.Count-1].AddCell(result.Rows[j].Cells[result.Columns.Count-1]);
+                    result.Rows[j].Cells[result.Columns.Count - 1].Column = result.Columns[result.Columns.Count - 1];
                 }
                 columnIndex++;
-                newColumn.ColumnName = "`" + columnIndex.ToString(CultureInfo.CurrentCulture) + "`";
-                if (fields[i].aliasclause != null)
-                    newColumn.ColumnAlias = fields[i].aliasclause.aliastext;
-                result.Columns.Add(newColumn);
             }
             return result;
         }
@@ -654,7 +699,7 @@ namespace QueryTextDriver
                 throw new QueryTextDriverException("Не задана ссылка на список полей для выборки");
             if (row == null)
                 throw new QueryTextDriverException("Не задана ссылка на объект row");
-            if (row == null)
+            if (rowJoin == null)
                 throw new QueryTextDriverException("Не задана ссылка на объект rowJoin");
             RowClass newRow = new RowClass();
             foreach (TLzField field in fields)
@@ -676,40 +721,42 @@ namespace QueryTextDriver
                     }
                     newCell.Value = columnJoin.Rows[0].Cells[0].Value;
                 } else
-                if (field.FieldExpr != null)
-                    newCell.Value = evaluator.Evaluate(cellJoin, rowJoin, field.FieldExpr);
-                else
-                {
-                    //Если используется * в качестве поля, то
-                    if (field.FieldName == "*")
+                    if (field.FieldExpr != null)
                     {
+                        newCell.Value = evaluator.Evaluate(cellJoin, rowJoin, field.FieldExpr); 
+                    }
+                    else
+                    {
+                        //Если используется * в качестве поля, то
+                        if (field.FieldName == "*")
+                        {
+                            for (int i = 0; i < row.Cells.Count; i++)
+                            {
+                                if (String.IsNullOrEmpty(field.FieldPrefix) || (field.FieldPrefix == row.Cells[i].Column.Table.TableAlias) ||
+                                    (field.FieldPrefix == row.Cells[i].Column.Table.TableName))
+                                {
+                                    CellClass cell = new CellClass();
+                                    cell.Value = row.Cells[i].Value;
+                                    cell.Row = newRow;
+                                    newRow.Cells.Add(cell);
+                                }
+                            }
+                            continue;
+                        }
+                        //Иначе
                         for (int i = 0; i < row.Cells.Count; i++)
                         {
-                            if (String.IsNullOrEmpty(field.FieldPrefix) || (field.FieldPrefix == row.Cells[i].Column.Table.TableAlias) ||
-                                (field.FieldPrefix == row.Cells[i].Column.Table.TableName))
+                            string TableName = field.FieldPrefix;
+                            string ColumnName = field.FieldName;
+                            if ((row.Cells[i].Column.ColumnName == ColumnName) &&
+                                ((row.Cells[i].Column.Table.TableName == TableName) || (row.Cells[i].Column.Table.TableAlias == TableName) ||
+                                String.IsNullOrEmpty(TableName)))
                             {
-                                CellClass cell = new CellClass();
-                                cell.Value = row.Cells[i].Value;
-                                cell.Row = newRow;
-                                newRow.Cells.Add(cell);
+                                newCell.Value = row.Cells[i].Value;
+                                break;
                             }
                         }
-                        continue;
                     }
-                    //Иначе
-                    for (int i = 0; i < row.Cells.Count; i++)
-                    {
-                        string TableName = field.FieldPrefix;
-                        string ColumnName = field.FieldName;
-                        if ((row.Cells[i].Column.ColumnName == ColumnName) &&
-                            ((row.Cells[i].Column.Table.TableName == TableName) || (row.Cells[i].Column.Table.TableAlias == TableName) || 
-                            String.IsNullOrEmpty(TableName)))
-                        {
-                            newCell.Value = row.Cells[i].Value;
-                            break;
-                        }
-                    }
-                }
                 if (newCell.Value.Equals(null))
                 {
                     QueryTextDriverException exception = new QueryTextDriverException("Не удалось получить значение поля {0}");
