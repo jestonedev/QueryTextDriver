@@ -71,14 +71,14 @@ namespace QueryTextDriver
             if ((stmt.LeftStmt != null) && (stmt.RightStmt != null))
             {
                 right_join = new SelectLinq(config).From(stmt.RightStmt.Tables).Join(stmt.RightStmt.JoinTables).Where(stmt.RightStmt.WhereClause, config).
-                    GroupBy(stmt.RightStmt.GroupbyClause).Having(stmt.RightStmt.HavingClause).OrderBy(stmt.RightStmt.SortClause).
-                    Limit(stmt.RightStmt.limitClause).Select(stmt.RightStmt.Fields);
+                    GroupBy(stmt.RightStmt.GroupbyClause).Having(stmt.RightStmt.HavingClause).Select(stmt.RightStmt.Fields).OrderBy(stmt.RightStmt.SortClause).
+                    Limit(stmt.RightStmt.limitClause).AsTable();
                 left_join = Select(stmt.LeftStmt);
             }
             if ((stmt.LeftStmt == null) && (stmt.RightStmt == null))
                 return new SelectLinq(config).From(stmt.Tables).Join(stmt.JoinTables).Where(stmt.WhereClause, config).
-                    GroupBy(stmt.GroupbyClause).Having(stmt.HavingClause).OrderBy(stmt.SortClause).
-                    Limit(stmt.limitClause).Select(stmt.Fields);
+                    GroupBy(stmt.GroupbyClause).Having(stmt.HavingClause).Select(stmt.Fields).OrderBy(stmt.SortClause).
+                    Limit(stmt.limitClause).AsTable();
             if (left_join.Columns.Count != right_join.Columns.Count)
                 throw new QueryTextDriverException("Несоответствие числа колонок в объединении");
             TableJoin result = new TableJoin();

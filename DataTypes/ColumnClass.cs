@@ -15,6 +15,7 @@ namespace DataTypes
         public Type ColumnType { get; set; }
         public TableClass Table { get; set; }
         public int CellsCount { get { return Cells.Count; } }
+        public bool IsHidden { get; set; }
 
         public ColumnClass(Collection<CellClass> cells, string columnName, string columnAlias, TableClass table)
         {
@@ -26,6 +27,7 @@ namespace DataTypes
             this.ColumnName = columnName;
             this.ColumnAlias = columnAlias;
             this.Table = table;
+            this.IsHidden = false;
         }
 
         public ColumnClass()
@@ -34,6 +36,7 @@ namespace DataTypes
             Cells = new Collection<CellClass>();
             this.ColumnName = "";
             this.ColumnAlias = "";
+            this.IsHidden = false;
         }
 
         public CellClass GetCell(int index)

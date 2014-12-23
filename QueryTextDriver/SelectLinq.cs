@@ -19,48 +19,47 @@ namespace QueryTextDriver
 
     public interface ISelectWhere
     {
-        TableJoin Select(TLzFieldList fields);
+        ISelect Select(TLzFieldList fields);
         ISelectGroupBy GroupBy(TLzGroupBy groupBy);
-        ISelectOrderBy OrderBy(TLzOrderByList sortList);
-        ISelectLimit Limit(TLz_SelectLimitClause limit);
     }
 
     public interface ISelectGroupBy
     {
-        TableJoin Select(TLzFieldList fields);
-        ISelectOrderBy OrderBy(TLzOrderByList sortList);
+        ISelect Select(TLzFieldList fields);
         ISelectHaving Having(TLzCustomExpression expression);
-        ISelectLimit Limit(TLz_SelectLimitClause limit);
     }
 
     public interface ISelectHaving
     {
-        TableJoin Select(TLzFieldList fields);
-        ISelectOrderBy OrderBy(TLzOrderByList sortList);
-        ISelectLimit Limit(TLz_SelectLimitClause limit);
+        ISelect Select(TLzFieldList fields);
     }
 
     public interface ISelectOrderBy
     {
-        TableJoin Select(TLzFieldList fields);
         ISelectLimit Limit(TLz_SelectLimitClause limit);
+        TableJoin AsTable();
     }
 
     public interface ISelectJoin
     {
-        TableJoin Select(TLzFieldList fields);
+        ISelect Select(TLzFieldList fields);
         ISelectWhere Where(TLzCustomExpression expression, QueryConfig config);
         ISelectGroupBy GroupBy(TLzGroupBy groupBy);
-        ISelectOrderBy OrderBy(TLzOrderByList sortList);
-        ISelectLimit Limit(TLz_SelectLimitClause limit);
     }
 
     public interface ISelectLimit
     {
-        TableJoin Select(TLzFieldList fields);
+        TableJoin AsTable();
     }
 
-    public class SelectLinq : ISelectFrom, ISelectWhere, ISelectGroupBy, ISelectHaving, ISelectOrderBy, ISelectJoin, ISelectLimit
+    public interface ISelect
+    {
+        ISelectOrderBy OrderBy(TLzOrderByList sortList);
+        ISelectLimit Limit(TLz_SelectLimitClause limit);
+        TableJoin AsTable();
+    }
+
+    public class SelectLinq : ISelectFrom, ISelectWhere, ISelectGroupBy, ISelectHaving, ISelectOrderBy, ISelectJoin, ISelectLimit, ISelect
 	{
         //Список таблиц выборки
         private Collection<TableJoin> tmpJoins = new Collection<TableJoin>();
@@ -68,15 +67,17 @@ namespace QueryTextDriver
         private TableJoin resultJoin = new TableJoin();
         //Группы groupBy
         private Collection<RowJoin> rowGroups = new Collection<RowJoin>();
-        //Сортировочные группы
-        private Collection<OrderJoin> orderJoins = new Collection<OrderJoin>();
+        //Сортировочная группа
+        private OrderJoin orderJoin = null;
+        //Результат выполнения Select
+        private TableJoin resultSelect = new TableJoin();
+        private Collection<RowClass> originalRows = new Collection<RowClass>(); 
+        //Limit StartIndex, EndIndex
+        int StartIndex;
+        int EndIndex;
 
         private QueryConfig config;
         private ExpressionEvaluator evaluator;
-
-        //Limit StartIndex, EndIndex
-        private int StartIndex;
-        private int EndIndex;
 
         public SelectLinq(QueryConfig config)
         {
@@ -85,7 +86,7 @@ namespace QueryTextDriver
             else
                 this.config = new QueryConfig(config.ColumnSeparator, config.RowSeparator, config.FirstRowHeader, config.IgnoreDataTypes);
             this.evaluator = ExpressionEvaluator.CreateEvaluator(this.config);
-            this.EndIndex = int.MaxValue;
+            EndIndex = Int32.MaxValue;
         }
 
         public ISelectFrom From(TLzTableList tables)
@@ -544,75 +545,52 @@ namespace QueryTextDriver
             return this;
         }
 
-        public TableJoin Select(TLzFieldList fields)
+        public ISelect Select(TLzFieldList fields)
         {
             if (fields == null)
                 throw new QueryTextDriverException("Не задана ссылка на список полей для выборки данных");
-            TableJoin result = new TableJoin();
             //Формируем выходные строки
-            int rowIndex = 0; //Номер строки
-            if ((orderJoins.Count == 1) && (rowGroups.Count == 0))
+            if (rowGroups.Count > 0)
             {
-                //Если сортировочных группа 1, а группировочных 0, то используется сортировка без группировки => вычислять каждую строку
-                for (int i = 0; i < orderJoins.Count; i++)
-                    for (int j = 0; j < orderJoins[i].RowJoin.Rows.Count; j++)
-                    {
-                        if ((rowIndex >= StartIndex) && (rowIndex <= EndIndex))
-                            result.Rows.Add(SelectRow(orderJoins[i].RowJoin.Rows[j], orderJoins[i].RowJoin, fields));
-                        rowIndex++;
-                    }
-            } else
-                if (orderJoins.Count > 1)
+                //Если используется группировка, то вычислять только одну строку для каждой группы
+                for (int i = 0; i < rowGroups.Count; i++)
                 {
-                    //Если сортировочных групп больше 1, то используется группировка => вычислять только одну строку для каждой группы
-                    
-                    for (int i = 0; i < orderJoins.Count; i++)
+                    resultSelect.Rows.Add(SelectRow(rowGroups[i].Rows[0], rowGroups[i], fields));
+                    originalRows.Add(rowGroups[i].Rows[0]);
+                }
+            }
+            else
+            {
+                //Если группировка не используется, то проверяем, есть ли агрегации
+                bool isAggregate = false;
+                foreach(TLzField field in fields)
+                    if ((field.FieldExpr != null) && (evaluator.IsAggregate(field.FieldExpr)))
                     {
-                        if ((rowIndex >= StartIndex) && (rowIndex <= EndIndex))
-                            result.Rows.Add(SelectRow(orderJoins[i].RowJoin.Rows[0], orderJoins[i].RowJoin, fields));
-                        rowIndex++;
+                        isAggregate = true;
+                        break;
                     }
-                } else
-                    if (rowGroups.Count > 0)
+                RowJoin join = new RowJoin();
+                if (isAggregate)
+                {
+                    //Если агрегации есть, то вычисляем одну строку
+                    for (int i = 0; i < resultJoin.Rows.Count; i++)
+                        join.Rows.Add(resultJoin.Rows[i]);
+                    if (resultJoin.Rows.Count > 0)
                     {
-                        //Если используется группировка, то вычислять только одну строку для каждой группы
-                        for (int i = 0; i < rowGroups.Count; i++)
-                        {
-                            if ((rowIndex >= StartIndex) && (rowIndex <= EndIndex))
-                                result.Rows.Add(SelectRow(rowGroups[i].Rows[0], rowGroups[i], fields));
-                            rowIndex++;
-                        }
+                        resultSelect.Rows.Add(SelectRow(resultJoin.Rows[0], join, fields));
+                        originalRows.Add(resultJoin.Rows[0]);
                     }
-                    else
+                }
+                else
+                {
+                    //Если агрегаций нет, то вычисляем каждую строку
+                    for (int i = 0; i < resultJoin.Rows.Count; i++)
                     {
-                        //Если ни группировка, ни сортировка не используются, то проверяем, есть ли агрегации
-                        bool isAggregate = false;
-                        foreach(TLzField field in fields)
-                            if ((field.FieldExpr != null) && (evaluator.IsAggregate(field.FieldExpr)))
-                            {
-                                isAggregate = true;
-                                break;
-                            }
-                        RowJoin join = new RowJoin();
-                        if (isAggregate)
-                        {
-                            //Если агрегации есть, то вычисляем одну строку
-                            for (int i = 0; i < resultJoin.Rows.Count; i++)
-                                join.Rows.Add(resultJoin.Rows[i]);
-                            if ((resultJoin.Rows.Count > 0) && ((rowIndex >= StartIndex) && (rowIndex <= EndIndex)))
-                                result.Rows.Add(SelectRow(resultJoin.Rows[0], join, fields));
-                        }
-                        else
-                        {
-                            //Если агрегаций нет, то вычисляем каждую строку
-                            for (int i = 0; i < resultJoin.Rows.Count; i++)
-                            {
-                                if ((rowIndex >= StartIndex) && (rowIndex <= EndIndex))
-                                    result.Rows.Add(SelectRow(resultJoin.Rows[i], join, fields));
-                                rowIndex++;
-                            }
-                        }
+                        resultSelect.Rows.Add(SelectRow(resultJoin.Rows[i], join, fields));
+                        originalRows.Add(resultJoin.Rows[i]);
                     }
+                }
+            }
             //Формируем колонки
             int columnIndex = 0;
             for (int i = 0; i < fields.Count(); i++)
@@ -629,21 +607,13 @@ namespace QueryTextDriver
                             column.ColumnName = resultJoin.Columns[j].ColumnName;
                             column.ColumnType = resultJoin.Columns[j].ColumnType;
                             column.Table = resultJoin.Columns[j].Table;
-                            result.Columns.Add(column);
-                            columnIndex++;
-                        }
-                    }
-
-                    for (int j = 0; resultJoin.Rows.Count > 0 && j < resultJoin.Rows[0].Cells.Count; j++)
-                    {
-                        if (String.IsNullOrEmpty(fields[i].FieldPrefix) || (fields[i].FieldPrefix == resultJoin.Rows[0].Cells[j].Column.Table.TableAlias) ||
-                            (fields[i].FieldPrefix == resultJoin.Rows[0].Cells[j].Column.Table.TableName))
-                        {
-                            for (int k = 0; k < result.Rows.Count; k++)
+                            resultSelect.Columns.Add(column);
+                            for (int k = 0; k < resultSelect.Rows.Count; k++)
                             {
-                                result.Columns[result.Columns.Count - 1].AddCell(result.Rows[k].Cells[result.Columns.Count - 1]);
-                                result.Rows[k].Cells[result.Columns.Count - 1].Column = result.Columns[result.Columns.Count - 1];
+                                resultSelect.Columns[resultSelect.Columns.Count - 1].AddCell(resultSelect.Rows[k].Cells[resultSelect.Columns.Count - 1]);
+                                resultSelect.Rows[k].Cells[resultSelect.Columns.Count - 1].Column = resultSelect.Columns[resultSelect.Columns.Count - 1];
                             }
+                            columnIndex++;
                         }
                     }
                     continue;
@@ -665,7 +635,7 @@ namespace QueryTextDriver
                             newColumn.ColumnName = ColumnAlias;
                         newColumn.ColumnType = resultJoin.Columns[j].ColumnType;
                         newColumn.Table = resultJoin.Columns[j].Table;
-                        result.Columns.Add(newColumn);
+                        resultSelect.Columns.Add(newColumn);
                         columnIndex++;
                         foundedField = true;
                         break;
@@ -679,17 +649,17 @@ namespace QueryTextDriver
                         newColumn.ColumnName = '`'+(columnIndex+1).ToString(CultureInfo.CurrentCulture)+'`';
                     else
                         newColumn.ColumnName = ColumnAlias;
-                    result.Columns.Add(newColumn);
+                    resultSelect.Columns.Add(newColumn);
                     columnIndex++;
                 }
-                for (int j = 0; j < result.Rows.Count; j++)
+                for (int j = 0; j < resultSelect.Rows.Count; j++)
                 {
-                    result.Columns[result.Columns.Count-1].AddCell(result.Rows[j].Cells[result.Columns.Count-1]);
-                    result.Rows[j].Cells[result.Columns.Count - 1].Column = result.Columns[result.Columns.Count - 1];
+                    resultSelect.Columns[resultSelect.Columns.Count - 1].AddCell(resultSelect.Rows[j].Cells[resultSelect.Columns.Count - 1]);
+                    resultSelect.Rows[j].Cells[resultSelect.Columns.Count - 1].Column = resultSelect.Columns[resultSelect.Columns.Count - 1];
                 }
                 columnIndex++;
             }
-            return result;
+            return this;
         }
 
         public RowClass SelectRow(RowClass row, RowJoin rowJoin, TLzFieldList fields)
@@ -864,8 +834,7 @@ namespace QueryTextDriver
         {
             if (expression == null)
                 return this;
-            Where(expression, config);
-            return this;
+            throw new QueryTextDriverException("Блок Having не поддерживается");
         }
 
         public ISelectOrderBy OrderBy(TLzOrderByList sortList)
@@ -895,19 +864,10 @@ namespace QueryTextDriver
                 string ColumnName = parts[0];
                 list.Add(TableName, ColumnName, orderBy.SortType);
             }
-            //Группируем и сортируем строки в группах
-            if (rowGroups.Count == 0)
-            {
-                orderJoins.Add(new OrderJoin(list));
-                for (int j = 0; j < resultJoin.Rows.Count; j++)
-                    orderJoins[0].Add(resultJoin.Rows[j]);
-            }
-            for (int i = 0; i < rowGroups.Count; i++)
-            {
-                orderJoins.Add(new OrderJoin(list));
-                for (int j = 0; j < rowGroups[i].Rows.Count; j++)
-                    orderJoins[i].Add(rowGroups[i].Rows[j]);
-            }
+            //Сортируем по правилам сортировки
+            orderJoin = new OrderJoin(list);
+            for (int i = 0; i < resultSelect.Rows.Count; i++ )
+                orderJoin.Add(resultSelect.Rows[i], originalRows[i]);
             return this;
         }
 
@@ -941,8 +901,44 @@ namespace QueryTextDriver
                 exception.Data.Add("{0}", limit.EndToken.AsText);
                 throw exception;
             }
+            EndIndex += StartIndex;
             EndIndex -= 1; //В LIMIT исчисление идет от 1, в логике программы от 0
             return this;
+        }
+
+        public TableJoin AsTable()
+        {
+            //Копируем колонки
+            TableJoin resultTable = new TableJoin();
+            foreach (ColumnClass column in resultSelect.Columns)
+            {
+                ColumnClass resultColumn = new ColumnClass();
+                resultColumn.ColumnAlias = column.ColumnAlias;
+                resultColumn.ColumnName = column.ColumnName;
+                resultColumn.ColumnType = column.ColumnType;
+                resultTable.Columns.Add(resultColumn);
+            }
+            //Применяем Limit к результирующему набору
+            if (orderJoin == null)
+            {
+                for (int i = 0; i < resultSelect.Rows.Count; i++)
+                    if (i >= StartIndex && i <= EndIndex)
+                    {
+                        resultTable.Rows.Add(resultSelect.Rows[i]);
+                        for (int j = 0; j < resultSelect.Rows[i].Cells.Count; j++)
+                            resultTable.Columns[j].AddCell(resultSelect.Rows[i].Cells[j]);
+                    }
+            } else
+            {
+                for (int i = 0; i < orderJoin.RowJoin.Rows.Count; i++)
+                    if (i >= StartIndex && i <= EndIndex)
+                    {
+                        resultTable.Rows.Add(orderJoin.RowJoin.Rows[i]);
+                        for (int j = 0; j < orderJoin.RowJoin.Rows[i].Cells.Count; j++)
+                            resultTable.Columns[j].AddCell(orderJoin.RowJoin.Rows[i].Cells[j]);
+                    }
+            }
+            return resultTable;
         }
     }
 }

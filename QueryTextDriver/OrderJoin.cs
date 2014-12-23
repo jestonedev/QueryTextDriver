@@ -12,21 +12,38 @@ namespace QueryTextDriver
     public class OrderJoin
     {
         public RowJoin RowJoin { get; set; }
+        private RowJoin OriginalJoin { get; set; }
         private SortList sortList;
 
         public OrderJoin(SortList sortList)
         {
             this.sortList = sortList;
             RowJoin = new RowJoin();
+            OriginalJoin = new RowJoin();
         }
 
-        public void Add(RowClass row)
+        public void Add(RowClass resultRow, RowClass originalRow)
         {
-            if (row == null)
-                throw new QueryTextDriverException("Не задан ссылка на строку");
+            if (resultRow == null)
+                throw new QueryTextDriverException("Не задан ссылка на строку resultRow");
+            if (originalRow == null)
+                throw new QueryTextDriverException("Не задан ссылка на строку originalRow");
             if (sortList.Count == 0)
                 throw new QueryTextDriverException("Не заданы параметры сортировки");
-            //Составляем список индексов значений, соответствующих сортировочному списку
+            int? finded_index = FindIndex(resultRow, RowJoin);
+            if (finded_index == null)
+                finded_index = FindIndex(originalRow, OriginalJoin);
+            if (finded_index == null)
+            {
+                QueryTextDriverException exception = new QueryTextDriverException("Неверный идентификатор колонки в блоке ORDER BY");
+                throw exception;
+            }
+            RowJoin.Rows.Insert(finded_index.Value, resultRow);
+            OriginalJoin.Rows.Insert(finded_index.Value, originalRow);
+        }
+
+        private int? FindIndex(RowClass row, RowJoin rowJoin)
+        {
             Dictionary<int, SortItem> indexes = new Dictionary<int, SortItem>();
             bool is_finded = false;
             for (int i = 0; i < sortList.Count; i++)
@@ -44,30 +61,19 @@ namespace QueryTextDriver
                     }
                 }
                 if (!is_finded)
-                {
-                    QueryTextDriverException exception = new QueryTextDriverException("Неизвестный параметр сортировки {0}");
-                    exception.Data.Add("{0}", sortList[i].TableName+"."+sortList[i].ColumnName+" "+(sortList[i].SortType == TLzSortType.srtAsc? "ASC" : "DESC"));
-                    throw exception;
-                }
+                    return null;
             }
-            bool is_finded_index = false;
-            int finded_index = RowJoin.Rows.Count;
-            for (int i = 0; i < RowJoin.Rows.Count; i++)
+            int finded_index = rowJoin.Rows.Count;
+            for (int i = 0; i < rowJoin.Rows.Count; i++)
             {
                 foreach (KeyValuePair<int, SortItem> index in indexes)
                 {
-                    if (((RowJoin.Rows[i].Cells[index.Key].Value > row.Cells[index.Key].Value) && (index.Value.SortType == TLzSortType.srtAsc)) ||
-                        ((RowJoin.Rows[i].Cells[index.Key].Value < row.Cells[index.Key].Value) && (index.Value.SortType == TLzSortType.srtDesc)))
-                    {
-                        finded_index = i;
-                        is_finded_index = true;
-                        break;
-                    }
+                    if (((rowJoin.Rows[i].Cells[index.Key].Value > row.Cells[index.Key].Value) && (index.Value.SortType == TLzSortType.srtAsc)) ||
+                        ((rowJoin.Rows[i].Cells[index.Key].Value < row.Cells[index.Key].Value) && (index.Value.SortType == TLzSortType.srtDesc)))
+                        return i;
                 }
-                if (is_finded_index)
-                    break;
             }
-            RowJoin.Rows.Insert(finded_index, row);
+            return rowJoin.Rows.Count;
         }
     }
 
