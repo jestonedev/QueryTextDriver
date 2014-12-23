@@ -549,7 +549,6 @@ namespace QueryTextDriver
             if (fields == null)
                 throw new QueryTextDriverException("Не задана ссылка на список полей для выборки данных");
             TableJoin result = new TableJoin();
-            Collection<ColumnClass> columns = new Collection<ColumnClass>();
             //Формируем выходные строки
             int rowIndex = 0; //Номер строки
             if ((orderJoins.Count == 1) && (rowGroups.Count == 0))
@@ -660,7 +659,7 @@ namespace QueryTextDriver
                         String.IsNullOrEmpty(TableName)))
                     {
                         ColumnClass newColumn = new ColumnClass();
-                        if (ColumnAlias == "")
+                        if (String.IsNullOrEmpty(ColumnAlias))
                             newColumn.ColumnName = resultJoin.Columns[j].ColumnName;
                         else
                             newColumn.ColumnName = ColumnAlias;
@@ -676,8 +675,8 @@ namespace QueryTextDriver
                 {
                     string ColumnAlias = fields[i].FieldAlias;
                     ColumnClass newColumn = new ColumnClass();
-                    if (ColumnAlias == "")
-                        newColumn.ColumnName = '`'+(columnIndex+1).ToString()+'`';
+                    if (String.IsNullOrEmpty(ColumnAlias))
+                        newColumn.ColumnName = '`'+(columnIndex+1).ToString(CultureInfo.CurrentCulture)+'`';
                     else
                         newColumn.ColumnName = ColumnAlias;
                     result.Columns.Add(newColumn);

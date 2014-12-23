@@ -277,7 +277,7 @@ namespace QueryTextDriver
 
         private CsvObject FuncSumEval(CellJoin cellJoin, RowJoin rowGroup, TLz_FuncCall func, TLzOwnerLocation context)
         {
-            if (func.args.Count() != 1)
+            if (func.args == null || func.args.Count() != 1)
             {
                 QueryTextDriverException exception = new QueryTextDriverException("Функция {0} принимает один аргумент");
                 exception.Data.Add("{0}", func.AsText);
