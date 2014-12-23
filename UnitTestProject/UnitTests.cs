@@ -249,5 +249,29 @@ namespace UnitTestProject
             Assert.AreEqual(table.Rows[3].Cells[1].Value.Value(), (Int64)3);
             Assert.AreEqual(table.Rows[3].Cells[4].Value.Value(), (Int64)4);
         }
+
+        [TestMethod]
+        public void TestMethod20()
+        {
+            QueryExecutor executor = new QueryExecutor("|", "", false, false);
+            TableJoin table = executor.Execute("SELECT * FROM \"" + Path.Combine(Environment.CurrentDirectory, "csvs", "test1.csv") + "\" v WHERE `5` IN (SELECT 4 UNION SELECT 3) LIMIT 1,4");
+            Assert.AreEqual(table.Rows.Count, 4);
+            Assert.AreEqual(table.Columns.Count, 5);
+            Assert.AreEqual(table.Rows[3].Cells[0].Value.Value(), (Int64)4);
+            Assert.AreEqual(table.Rows[3].Cells[1].Value.Value(), (Int64)3);
+            Assert.AreEqual(table.Rows[3].Cells[4].Value.Value(), (Int64)4);
+        }
+
+        [TestMethod]
+        public void TestMethod21()
+        {
+            QueryExecutor executor = new QueryExecutor("|", "", false, false);
+            TableJoin table = executor.Execute("SELECT * FROM \"" + Path.Combine(Environment.CurrentDirectory, "csvs", "test1.csv") + "\" v WHERE `5` IN (SELECT 4 UNION SELECT 3) LIMIT 1");
+            Assert.AreEqual(table.Rows.Count, 1);
+            Assert.AreEqual(table.Columns.Count, 5);
+            Assert.AreEqual(table.Rows[0].Cells[0].Value.Value(), (Int64)1);
+            Assert.AreEqual(table.Rows[0].Cells[1].Value.Value(), (Int64)2);
+            Assert.AreEqual(table.Rows[0].Cells[4].Value.Value(), (Int64)3);
+        }
     }
 }
