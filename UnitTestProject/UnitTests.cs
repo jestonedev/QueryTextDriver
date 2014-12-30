@@ -273,5 +273,39 @@ namespace UnitTestProject
             Assert.AreEqual(table.Rows[0].Cells[1].Value.Value(), (Int64)2);
             Assert.AreEqual(table.Rows[0].Cells[4].Value.Value(), (Int64)3);
         }
+
+        [TestMethod]
+        public void TestMethod22()
+        {
+            QueryExecutor executor = new QueryExecutor("|", "", false, false);
+            TableJoin table = executor.Execute("SELECT SUM(`2`) FROM \"" + Path.Combine(Environment.CurrentDirectory, "csvs", "test1.csv") + "\" v GROUP BY `2` HAVING `2` >= 3");
+            Assert.AreEqual(table.Rows.Count, 2);
+            Assert.AreEqual(table.Columns.Count, 1);
+            Assert.AreEqual(table.Rows[0].Cells[0].Value.Value(), (Double)6);
+            Assert.AreEqual(table.Rows[1].Cells[0].Value.Value(), (Double)8);
+        }
+
+        [TestMethod]
+        public void TestMethod23()
+        {
+            QueryExecutor executor = new QueryExecutor("|", "", false, false);
+            TableJoin table = executor.Execute("SELECT SUM(`2`), AVG(`5`) FROM \"" + Path.Combine(Environment.CurrentDirectory, "csvs", "test1.csv") + "\" v GROUP BY `2` HAVING SUM(`5`) <= 7 ");
+            Assert.AreEqual(table.Rows.Count, 2);
+            Assert.AreEqual(table.Columns.Count, 2);
+            Assert.AreEqual(table.Rows[0].Cells[0].Value.Value(), (Double)4);
+            Assert.AreEqual(table.Rows[1].Cells[0].Value.Value(), (Double)6);
+            Assert.AreEqual(table.Rows[0].Cells[1].Value.Value(), (Double)3);
+            Assert.AreEqual(table.Rows[1].Cells[1].Value.Value(), (Double)3.5);
+        }
+
+        [TestMethod]
+        public void TestMethod24()
+        {
+            QueryExecutor executor = new QueryExecutor("|", "", false, false);
+            TableJoin table = executor.Execute("SELECT a.*, b.* FROM \"" + Path.Combine(Environment.CurrentDirectory, "csvs", "test1.csv") + "\" a" +
+                    ", \"" + Path.Combine(Environment.CurrentDirectory, "csvs", "test2.csv") + "\" b");
+            Assert.AreEqual(table.Rows.Count, 24);
+            Assert.AreEqual(table.Columns.Count, 7);
+        }
     }
 }

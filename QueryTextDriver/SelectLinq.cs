@@ -486,6 +486,7 @@ namespace QueryTextDriver
                 return this;
             Collection<ColumnClass> new_columns = new Collection<ColumnClass>();
             Collection<RowClass> new_rows = new Collection<RowClass>();
+            Dictionary<RowClass, RowJoin> rows_for_removing = new Dictionary<RowClass, RowJoin>(); //
             RowJoin rowJoin = new RowJoin();
             //Формируем структуру нового табличного выражения
             foreach (ColumnClass column in resultJoin.Columns)
@@ -540,6 +541,14 @@ namespace QueryTextDriver
                         row.Cells.Add(resultJoin.Columns[j].GetCell(i));
                     }
                 }
+                else
+                    rows_for_removing.Add(resultJoin.Rows[i], rowJoin);
+            }
+            foreach (var row in rows_for_removing)
+            {
+                row.Value.Rows.Remove(row.Key);
+                if (row.Value.Rows.Count == 0)
+                    rowGroups.Remove(row.Value);
             }
             resultJoin = new TableJoin(new_columns, new_rows);
             return this;
@@ -834,7 +843,8 @@ namespace QueryTextDriver
         {
             if (expression == null)
                 return this;
-            throw new QueryTextDriverException("Блок Having не поддерживается");
+            Where(expression, config);
+            return this;
         }
 
         public ISelectOrderBy OrderBy(TLzOrderByList sortList)
